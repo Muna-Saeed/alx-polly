@@ -1,16 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { updatePoll } from '@/app/lib/actions/poll-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useSession } from 'next-auth/react';
 
 export default function EditPollForm({ poll }: { poll: any }) {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [question, setQuestion] = useState(poll.question);
   const [options, setOptions] = useState<string[]>(poll.options || []);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  
+  useEffect(() => {
+    // Redirect if not authenticated
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  // Don't render form if not authenticated
+  if (status === 'loading' || !session) {
+    return null;
+  }
 
   const handleOptionChange = (idx: number, value: string) => {
     setOptions((opts) => opts.map((opt, i) => (i === idx ? value : opt)));
@@ -37,7 +54,7 @@ export default function EditPollForm({ poll }: { poll: any }) {
         } else {
           setSuccess(true);
           setTimeout(() => {
-            window.location.href = '/polls';
+            router.push('/polls');
           }, 1200);
         }
       }}
