@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,31 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { login } from '@/app/lib/actions/auth-actions';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
-  const MAX_ATTEMPTS = 5;
-  const LOCK_DURATION = 15 * 60 * 1000; // 15 minutes in milliseconds
-
-  useEffect(() => {
-    const lockUntil = localStorage.getItem('loginLockUntil');
-    if (lockUntil && Number(lockUntil) > Date.now()) {
-      setIsLocked(true);
-      const remainingTime = Number(lockUntil) - Date.now();
-      setTimeout(() => setIsLocked(false), remainingTime);
-    }
-  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     
-    if (isLocked) {
-      setError('Too many failed attempts. Please try again later.');
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
@@ -51,23 +31,10 @@ export default function LoginPage() {
       const result = await login({ email, password });
 
       if (result?.error) {
-        setAttempts(prev => {
-          const newAttempts = prev + 1;
-          if (newAttempts >= MAX_ATTEMPTS) {
-            setIsLocked(true);
-            localStorage.setItem('loginLockUntil', String(Date.now() + LOCK_DURATION));
-            setTimeout(() => {
-              setIsLocked(false);
-              setAttempts(0);
-            }, LOCK_DURATION);
-          }
-          return newAttempts;
-        });
         throw new Error(result.error);
       }
 
-      // Use Next.js router for client-side navigation
-      router.push('/polls');
+      // Server action handles redirect on success
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -94,7 +61,6 @@ export default function LoginPage() {
                 placeholder="your@email.com" 
                 required
                 autoComplete="email"
-                disabled={isLocked}
               />
             </div>
             <div className="space-y-2">
@@ -105,19 +71,13 @@ export default function LoginPage() {
                 type="password" 
                 required
                 autoComplete="current-password"
-                disabled={isLocked}
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            {isLocked && (
-              <p className="text-yellow-600 text-sm">
-                Account temporarily locked due to too many failed attempts. Please try again later.
-              </p>
-            )}
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loading || isLocked}
+              disabled={loading}
             >
               {loading ? 'Logging in...' : 'Login'}
             </Button>
