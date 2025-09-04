@@ -7,11 +7,29 @@ import { revalidatePath } from "next/cache";
 export async function createPoll(formData: FormData) {
   const supabase = await createClient();
 
-  const question = formData.get("question") as string;
-  const options = formData.getAll("options").filter(Boolean) as string[];
+  // Extract raw inputs
+  const rawQuestion = formData.get("question") as string | null;
+  const rawOptions = formData.getAll("options").filter(Boolean) as string[];
 
-  if (!question || options.length < 2) {
-    return { error: "Please provide a question and at least two options." };
+  // ---------- Input validation ----------
+  const question = (rawQuestion ?? "").trim();
+  const options = rawOptions.map((o) => o.trim()).filter(Boolean);
+
+  if (question.length < 5) {
+    return { error: "The question must be at least 5 characters long." };
+  }
+  if (question.length > 255) {
+    return { error: "The question cannot exceed 255 characters." };
+  }
+  if (options.length < 2) {
+    return { error: "Please provide at least two answer options." };
+  }
+  if (options.length > 10) {
+    return { error: "You can provide at most 10 options." };
+  }
+  const normalized = options.map((o) => o.toLowerCase());
+  if (new Set(normalized).size !== normalized.length) {
+    return { error: "Answer options must be unique." };
   }
 
   // Get user from session
@@ -26,6 +44,31 @@ export async function createPoll(formData: FormData) {
     return { error: "You must be logged in to create a poll." };
   }
 
+  // ---------- Rate limiting ----------
+  // Limit: 5 polls per user per rolling 1-hour window.
+  const RATE_LIMIT = 5;
+  const WINDOW_MS = 60 * 60 * 1000;
+  const windowStartIso = new Date(Date.now() - WINDOW_MS).toISOString();
+
+  const {
+    count: recentCount,
+    error: countError,
+  } = await supabase
+    .from("polls")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("created_at", windowStartIso);
+
+  if (countError) {
+    return { error: countError.message };
+  }
+  if ((recentCount ?? 0) >= RATE_LIMIT) {
+    return {
+      error: `Rate limit exceeded. You can create up to ${RATE_LIMIT} polls per hour.`,
+    };
+  }
+
+  // ---------- Insert poll ----------
   const { error } = await supabase.from("polls").insert([
     {
       user_id: user.id,
@@ -108,11 +151,29 @@ export async function deletePoll(id: string) {
 export async function updatePoll(pollId: string, formData: FormData) {
   const supabase = await createClient();
 
-  const question = formData.get("question") as string;
-  const options = formData.getAll("options").filter(Boolean) as string[];
+  // Extract raw inputs
+  const rawQuestion = formData.get("question") as string | null;
+  const rawOptions = formData.getAll("options").filter(Boolean) as string[];
 
-  if (!question || options.length < 2) {
-    return { error: "Please provide a question and at least two options." };
+  // ---------- Input validation ----------
+  const question = (rawQuestion ?? "").trim();
+  const options = rawOptions.map((o) => o.trim()).filter(Boolean);
+
+  if (question.length < 5) {
+    return { error: "The question must be at least 5 characters long." };
+  }
+  if (question.length > 255) {
+    return { error: "The question cannot exceed 255 characters." };
+  }
+  if (options.length < 2) {
+    return { error: "Please provide at least two answer options." };
+  }
+  if (options.length > 10) {
+    return { error: "You can provide at most 10 options." };
+  }
+  const normalized = options.map((o) => o.toLowerCase());
+  if (new Set(normalized).size !== normalized.length) {
+    return { error: "Answer options must be unique." };
   }
 
   // Get user from session
