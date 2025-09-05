@@ -1,5 +1,22 @@
 "use client";
 
+/**
+ * DashboardLayout Component
+ *
+ * WHAT
+ * ----
+ * Provides a persistent shell (header + footer) for all pages within the
+ * `(dashboard)` route group.  It guards access by redirecting unauthenticated
+ * visitors to the `/login` page and exposes UI affordances like a user avatar
+ * dropdown and quick "Create Poll" button.
+ *
+ * WHY
+ * ---
+ * Consolidating shared layout concerns (navigation, page chrome, auth guard)
+ * in a single component avoids code duplication across each dashboard page
+ * and ensures a consistent look-and-feel.
+ */
+
 import { ReactNode, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

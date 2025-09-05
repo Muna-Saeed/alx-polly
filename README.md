@@ -79,11 +79,41 @@ cd alx-polly
 npm install
 ```
 
-### 3. Environment Variables
+### 3. Supabase Configuration & Environment Variables
+
+1. Create a new project on [Supabase](https://supabase.io/) (the free tier is fine).
+2. Navigate to **Project Settings → API** and copy the following values:
+   * **Project URL** – e.g. `https://xyzcompany.supabase.co`
+   * **Anon Public Key** – starts with `ey...`
+3. Create a `.env.local` file at the project root and paste:
+   ```bash
+   # Supabase
+   NEXT_PUBLIC_SUPABASE_URL=<your-project-url>
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
+   # Optional: Service Role key if you intend to run admin scripts
+   SUPABASE_SERVICE_ROLE=<service-role-key>
+   ```
+4. (Optional) Import the SQL schema located in `supabase/schema.sql` or run the migrations via the Supabase Dashboard **SQL Editor**.
+
+### 4. Usage Examples
+
+#### Creating a Poll
+```bash
+# 1. Start the dev server (see next section)
+# 2. Visit http://localhost:3000/create
+# 3. Fill in the question and at least two options, then click "Create Poll".
+```
+
+#### Voting on a Poll
+```bash
+# 1. Navigate to a poll URL – e.g. http://localhost:3000/polls/<pollId>
+# 2. Click one of the answer buttons. The vote count updates in real-time.
+```
+
 
 The project uses Supabase for its backend. An environment file `.env.local` is needed.Use the keys you created during the Supabase setup process.
 
-### 4. Running the Development Server
+### 5. Running the Development Server
 
 Start the application in development mode:
 
@@ -93,4 +123,18 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
-Good luck, engineer! This is your chance to step into the shoes of a security professional and make a real impact on the quality and safety of this application. Happy hunting!
+---
+
+### 6. Testing
+
+The project ships with a minimal Playwright test-suite that spins up a local server, creates a poll, and asserts that voting works. To run:
+
+```bash
+npm run test
+```
+
+Make sure the `.env.local` variables are set and the database tables exist before running the tests.
+
+---
+
+Happy polling! 🎉
